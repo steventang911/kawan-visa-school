@@ -1334,16 +1334,69 @@ function supaShowLogin() {
 }
 function supaHideLogin() {
   const m = document.getElementById('authOverlay');
-  if(m) { m.style.display='none'; document.getElementById('authSent').style.display='none'; document.getElementById('authEmail').value=''; }
+  if(m) {
+    m.style.display='none';
+    document.getElementById('authStep1').style.display='block';
+    document.getElementById('authStep2').style.display='none';
+    document.getElementById('authSignInBtn').disabled=false;
+    document.getElementById('authSignInBtn').textContent='Send Code';
+    document.getElementById('authVerifyBtn').disabled=false;
+    document.getElementById('authVerifyBtn').textContent='Verify Code';
+    document.getElementById('authOtpError').style.display='none';
+    document.getElementById('authEmail').value='';
+    document.getElementById('authOtpInput').value='';
+  }
 }
 async function supaSignIn() {
   const email = document.getElementById('authEmail').value.trim();
   if(!email||!email.includes('@')) { alert('Enter a valid email address.'); return; }
+  var lastSent = parseInt(localStorage.getItem('kawan_otp_ts')||'0');
+  var now = Date.now();
+  if(now-lastSent < 60000) {
+    alert('Please wait '+Math.ceil((60000-(now-lastSent))/1000)+' more seconds.');
+    return;
+  }
   const btn = document.getElementById('authSignInBtn');
   btn.disabled=true; btn.textContent='Sending…';
-  const { error } = await supa.auth.signInWithOtp({ email, options:{ emailRedirectTo: window.location.origin } });
-  if(error) { alert('Error: '+error.message); btn.disabled=false; btn.textContent='Send Magic Link'; }
-  else { document.getElementById('authSent').style.display='block'; btn.textContent='Sent ✓'; }
+  const { error } = await supa.auth.signInWithOtp({ email, options:{ shouldCreateUser:true } });
+  if(error) { alert('Error: '+error.message); btn.disabled=false; btn.textContent='Send Code'; }
+  else {
+    localStorage.setItem('kawan_otp_email', email);
+    localStorage.setItem('kawan_otp_ts', now.toString());
+    document.getElementById('authStep1').style.display='none';
+    document.getElementById('authStep2').style.display='block';
+    document.getElementById('authOtpInput').focus();
+  }
+}
+
+async function supaVerifyOtp() {
+  var code = document.getElementById('authOtpInput').value.trim();
+  var email = localStorage.getItem('kawan_otp_email')||'';
+  var errEl = document.getElementById('authOtpError');
+  if(!code||code.length!==6||isNaN(code)) {
+    errEl.textContent='Enter the 6-digit code from your email.';
+    errEl.style.display='block'; return;
+  }
+  var btn = document.getElementById('authVerifyBtn');
+  btn.disabled=true; btn.textContent='Verifying…';
+  errEl.style.display='none';
+  const { data, error } = await supa.auth.verifyOtp({ email, token:code, type:'email' });
+  if(error) {
+    errEl.textContent='Invalid or expired code. Try again.';
+    errEl.style.display='block';
+    btn.disabled=false; btn.textContent='Verify Code';
+  } else {
+    localStorage.removeItem('kawan_otp_email');
+    localStorage.removeItem('kawan_otp_ts');
+    supaHideLogin();
+  }
+}
+
+function supaBackToEmail() {
+  document.getElementById('authStep1').style.display='block';
+  document.getElementById('authStep2').style.display='none';
+  document.getElementById('authSignInBtn').disabled=false;
+  document.getElementById('authSignInBtn').textContent='Send Code';
 }
 async function supaSignOut() {
   await supa.auth.signOut();
@@ -1548,11 +1601,23 @@ function applyLang() {
   <div class="auth-modal">
     <div style="font-size:28px;margin-bottom:8px">🔐</div>
     <div class="auth-modal-title">Login to Kawan</div>
-    <div class="auth-modal-sub">Enter your email and we'll send a magic link — no password needed.</div>
-    <div class="auth-sent" id="authSent">✅ Magic link sent! Check your email to unlock Pro.</div>
-    <input class="auth-input" id="authEmail" type="email" placeholder="your@email.com" onkeydown="if(event.key==='Enter')supaSignIn()">
-    <button class="btn-auth" id="authSignInBtn" onclick="supaSignIn()">Send Magic Link</button>
-    <span class="auth-close" onclick="supaHideLogin()">Cancel</span>
+    <!-- Step 1: Email -->
+    <div id="authStep1">
+      <div class="auth-modal-sub">Enter your email — we'll send a 6-digit code. No password needed.</div>
+      <input class="auth-input" id="authEmail" type="email" placeholder="your@email.com" onkeydown="if(event.key==='Enter')supaSignIn()">
+      <button class="btn-auth" id="authSignInBtn" onclick="supaSignIn()">Send Code</button>
+      <span class="auth-close" onclick="supaHideLogin()">Cancel</span>
+    </div>
+    <!-- Step 2: OTP code -->
+    <div id="authStep2" style="display:none">
+      <div class="auth-modal-sub">Check your email for a 6-digit code. Valid for 10 minutes.</div>
+      <input class="auth-input" id="authOtpInput" type="number" placeholder="123456"
+        style="font-size:22px;letter-spacing:6px;text-align:center"
+        onkeydown="if(event.key==='Enter')supaVerifyOtp()">
+      <div id="authOtpError" style="display:none;color:var(--red);font-size:12px;margin-bottom:8px"></div>
+      <button class="btn-auth" id="authVerifyBtn" onclick="supaVerifyOtp()">Verify Code</button>
+      <span class="auth-close" onclick="supaBackToEmail()">← Different email</span>
+    </div>
     <div class="auth-user-bar" id="authUserBar">
       <span class="auth-email" style="color:var(--text)"></span>
       <span style="cursor:pointer;color:var(--red)" onclick="supaSignOut()">Sign out</span>
