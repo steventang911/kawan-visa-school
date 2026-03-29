@@ -269,71 +269,52 @@ select.field-input option{background:var(--bg2)}
 }
 @keyframes xp-badge-glow {
   0%,100% { opacity:1; }
-  50%      { opacity:.6; }
+  50%      { opacity:.55; }
 }
+/* ── base (dark mode default) ── */
 .cross-promo {
-  position:relative;
-  overflow:hidden;
-  background: linear-gradient(135deg, rgba(99,102,241,.15) 0%, rgba(14,165,190,.12) 50%, rgba(99,102,241,.15) 100%);
+  position:relative; overflow:hidden;
+  background: linear-gradient(135deg, rgba(99,102,241,.18) 0%, rgba(14,165,190,.14) 50%, rgba(99,102,241,.18) 100%);
   background-size: 200% auto;
-  border: 1px solid rgba(129,140,248,.35);
+  border: 1px solid rgba(129,140,248,.4);
   border-radius: var(--rs);
-  padding: 11px 13px;
-  margin-bottom: 8px;
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  cursor: pointer;
-  text-decoration: none;
+  padding: 11px 13px; margin-bottom: 8px;
+  display: flex; align-items: center; justify-content: space-between;
+  cursor: pointer; text-decoration: none;
   animation: xp-shimmer 4s linear infinite, xp-pulse 3s ease-in-out infinite;
   transition: transform .15s ease, opacity .15s ease;
 }
-.cross-promo:active { transform: scale(.97); opacity:.85; }
-/* subtle shine sweep */
+.cross-promo:active { transform:scale(.97); opacity:.85; }
 .cross-promo::before {
-  content:'';
-  position:absolute;
-  top:0; left:-60%;
+  content:''; position:absolute; top:0; left:-60%;
   width:40%; height:100%;
   background: linear-gradient(90deg, transparent, rgba(255,255,255,.07), transparent);
   animation: xp-shimmer 3.5s linear infinite;
 }
 .cross-promo-badge {
-  display: inline-block;
-  font-size: 8px;
-  font-weight: 800;
-  color: #c7d2fe;
-  text-transform: uppercase;
-  letter-spacing: .6px;
-  margin-bottom: 3px;
-  animation: xp-badge-glow 2.5s ease-in-out infinite;
+  display:inline-block; font-size:8px; font-weight:800;
+  color:#c7d2fe; text-transform:uppercase; letter-spacing:.6px;
+  margin-bottom:3px; animation: xp-badge-glow 2.5s ease-in-out infinite;
 }
-.cross-promo-name {
-  font-size: 13px;
-  font-weight: 800;
-  color: #e0e7ff;
-  letter-spacing: -.2px;
-}
-.cross-promo-sub {
-  font-size: 10px;
-  color: #a5b4fc;
-  margin-top: 2px;
-}
+.cross-promo-name { font-size:13px; font-weight:800; color:#e0e7ff; letter-spacing:-.2px; }
+.cross-promo-sub  { font-size:10px; color:#a5b4fc; margin-top:2px; }
 .cross-promo-logo {
-  width: 36px; height: 36px;
-  border-radius: 8px;
-  background: linear-gradient(135deg, #6366f1, #818cf8);
-  display: flex; align-items: center; justify-content: center;
-  font-size: 20px;
-  flex-shrink: 0;
+  width:36px; height:36px; border-radius:8px;
+  background: linear-gradient(135deg,#6366f1,#818cf8);
+  display:flex; align-items:center; justify-content:center;
+  font-size:20px; flex-shrink:0;
   box-shadow: 0 2px 8px rgba(99,102,241,.35);
 }
-.cross-promo-arrow {
-  font-size: 14px;
-  color: #a5b4fc;
-  margin-left: 6px;
-  flex-shrink: 0;
+.cross-promo-arrow { font-size:14px; color:#a5b4fc; margin-left:6px; flex-shrink:0; }
+/* ── light mode overrides ── */
+[data-theme="light"] .cross-promo {
+  background: linear-gradient(135deg, rgba(99,102,241,.1) 0%, rgba(14,165,190,.08) 50%, rgba(99,102,241,.1) 100%);
+  border-color: rgba(99,102,241,.3);
 }
+[data-theme="light"] .cross-promo-badge { color: #4f46e5; }
+[data-theme="light"] .cross-promo-name  { color: #1e1b4b; }
+[data-theme="light"] .cross-promo-sub   { color: #4338ca; }
+[data-theme="light"] .cross-promo-arrow { color: #4f46e5; }
 </style>
 </head>
 <body>
