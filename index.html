@@ -315,6 +315,82 @@ select.field-input option{background:var(--bg2)}
 [data-theme="light"] .cross-promo-name  { color: #1e1b4b; }
 [data-theme="light"] .cross-promo-sub   { color: #4338ca; }
 [data-theme="light"] .cross-promo-arrow { color: #4f46e5; }
+
+/* ═══ PWA INSTALL BANNER ═══ */
+@keyframes pwaBorderGlow{
+  0%,100%{box-shadow:0 0 8px rgba(249,115,22,.4),0 0 0 1px rgba(249,115,22,.5)}
+  50%{box-shadow:0 0 22px rgba(249,115,22,.8),0 0 0 1px rgba(249,115,22,.9),0 4px 20px rgba(249,115,22,.3)}
+}
+@keyframes pwaShimmer{
+  0%{background-position:200% center}
+  100%{background-position:-200% center}
+}
+@keyframes pwaBounce{
+  0%,100%{transform:translateY(0) rotate(-5deg)}
+  40%{transform:translateY(-6px) rotate(5deg)}
+  60%{transform:translateY(-3px) rotate(-3deg)}
+}
+@keyframes pwaPulseBtn{
+  0%,100%{box-shadow:0 0 0 0 rgba(249,115,22,.6)}
+  60%{box-shadow:0 0 0 8px rgba(249,115,22,0)}
+}
+@keyframes pwaSlidein{
+  from{opacity:0;transform:translateY(16px)}
+  to{opacity:1;transform:translateY(0)}
+}
+#pwaHomeBanner{
+  position:relative;overflow:hidden;
+  background:linear-gradient(135deg,rgba(249,115,22,.22),rgba(249,115,22,.06),rgba(249,115,22,.18));
+  border-radius:var(--rs);padding:14px;margin-bottom:10px;
+  display:flex;align-items:center;gap:12px;
+  animation:pwaBorderGlow 2.5s ease-in-out infinite, pwaSlidein .5s ease both
+}
+#pwaHomeBanner::before{
+  content:'';position:absolute;inset:0;
+  background:linear-gradient(105deg,transparent 40%,rgba(255,255,255,.07) 50%,transparent 60%);
+  background-size:200% 100%;
+  animation:pwaShimmer 2.8s linear infinite;pointer-events:none
+}
+#pwaHomeBanner::after{
+  content:'✨';position:absolute;top:6px;right:10px;font-size:14px;
+  opacity:.6;animation:pwaBounce 2s ease-in-out infinite;pointer-events:none
+}
+#pwaHomeBanner .pwa-hb-icon{font-size:30px;flex-shrink:0;animation:pwaBounce 1.8s ease-in-out infinite}
+#pwaHomeBanner .pwa-hb-text{flex:1}
+#pwaHomeBanner .pwa-hb-title{
+  font-size:13px;font-weight:800;margin-bottom:3px;
+  background:linear-gradient(90deg,#F97316,#FBBF24,#F97316);
+  background-size:200% auto;
+  -webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;
+  animation:pwaShimmer 2s linear infinite
+}
+#pwaHomeBanner .pwa-hb-sub{font-size:11px;color:var(--muted);line-height:1.4}
+#pwaHomeBanner .btn-pwa-hb{
+  background:linear-gradient(135deg,#F97316,#ea580c);
+  color:#fff;font-weight:800;font-size:11px;
+  padding:9px 16px;border-radius:12px;white-space:nowrap;flex-shrink:0;
+  animation:pwaPulseBtn 2s ease-in-out infinite;
+  box-shadow:0 4px 12px rgba(249,115,22,.5);transition:transform .15s,box-shadow .15s
+}
+#pwaHomeBanner .btn-pwa-hb:active{transform:scale(.95);box-shadow:0 2px 6px rgba(249,115,22,.4)}
+#pwaInstallBanner{
+  position:fixed;bottom:70px;left:50%;transform:translateX(-50%);
+  width:calc(100% - 28px);max-width:492px;
+  background:linear-gradient(135deg,#1D3A6B,#0d1f52);
+  border:1px solid rgba(249,115,22,.4);border-radius:var(--r);
+  padding:14px 16px;display:none;align-items:center;gap:12px;
+  box-shadow:0 8px 24px rgba(0,0,0,.5);z-index:8888;
+  animation:slideUp .3s ease
+}
+@keyframes slideUp{from{opacity:0;transform:translateX(-50%) translateY(20px)}to{opacity:1;transform:translateX(-50%) translateY(0)}}
+#pwaInstallBanner .pwa-icon{font-size:28px;flex-shrink:0}
+#pwaInstallBanner .pwa-text{flex:1}
+#pwaInstallBanner .pwa-title{font-size:13px;font-weight:700;color:#fff;margin-bottom:2px}
+#pwaInstallBanner .pwa-sub{font-size:11px;color:rgba(255,255,255,.65);line-height:1.4}
+#pwaInstallBanner .pwa-actions{display:flex;flex-direction:column;gap:6px;flex-shrink:0}
+#pwaInstallBanner .btn-pwa-install{background:var(--amber,#F59E0B);color:#fff;font-weight:800;font-size:11px;padding:8px 14px;border-radius:10px;white-space:nowrap}
+#pwaInstallBanner .btn-pwa-dismiss{font-size:10px;color:rgba(255,255,255,.5);text-align:center;cursor:pointer;padding:2px}
+
 </style>
 </head>
 <body>
@@ -646,7 +722,7 @@ select.field-input option{background:var(--bg2)}
           <span class="auth-email" style="color:var(--text)"></span>
           <span style="cursor:pointer;color:var(--red);font-weight:600" onclick="supaSignOut()">Sign out</span>
         </div>
-        <button style="width:100%;padding:10px;background:var(--teal);color:#fff;font-weight:700;font-size:13px;border-radius:var(--rs);border:none;cursor:pointer;" onclick="supaShowLogin()">Login / Create Account</button>
+        <button id="profileLoginBtn" style="width:100%;padding:10px;background:var(--teal);color:#fff;font-weight:700;font-size:13px;border-radius:var(--rs);border:none;cursor:pointer;" onclick="supaShowLogin()">Login / Create Account</button>
       </div>
       <div class="ver-footer">Kawan Visa International Schools v1.0 · 🇲🇾</div>
     </div>
@@ -1228,18 +1304,32 @@ const App = {
     return p.length ? 'Family profile: ' + p.join(' · ') : 'No profile set';
   },
   async unlockPro() {
-    if(!_supaUser) { supaShowLogin(); return; }
     var btn = document.querySelector('.btn-pro');
     if(btn) { btn.textContent = '⏳ Loading...'; btn.disabled = true; }
+    // Build payload — use logged-in user if available, otherwise guest checkout (email collected by Stripe)
+    const payload = _supaUser
+      ? { email: _supaUser.email, userId: _supaUser.id }
+      : {};  // Guest checkout — Stripe will collect email on payment page
     try {
       const res = await fetch('/.netlify/functions/create-checkout', {
         method:'POST', headers:{'Content-Type':'application/json'},
-        body: JSON.stringify({email:_supaUser.email, userId:_supaUser.id})
+        body: JSON.stringify(payload)
       });
+      if(!res.ok) {
+        const errText = await res.text();
+        console.error('Checkout error:', res.status, errText);
+        alert('Payment setup failed (' + res.status + '). Please try again.');
+        if(btn) { btn.textContent='🚀 Upgrade to Pro — RM14.90/month'; btn.disabled=false; }
+        return;
+      }
       const data = await res.json();
       if(data.url) { window.location.href = data.url; }
       else { alert('Payment setup failed. Please try again.'); if(btn) { btn.textContent='🚀 Upgrade to Pro — RM14.90/month'; btn.disabled=false; } }
-    } catch(err) { alert('Connection error.'); if(btn) { btn.textContent='🚀 Upgrade to Pro — RM14.90/month'; btn.disabled=false; } }
+    } catch(err) {
+      console.error('Network error:', err);
+      alert('Connection error. Check your internet and try again.');
+      if(btn) { btn.textContent='🚀 Upgrade to Pro — RM14.90/month'; btn.disabled=false; }
+    }
   },
   secretUnlockPro() {
     profile.isPro = !profile.isPro;
@@ -1317,15 +1407,25 @@ async function _supaLoadPro() {
   profile.isPro = data ? (data.is_pro_school||false) : false;
   try { localStorage.setItem('kawan_school_profile', JSON.stringify(profile));
     applyLang(); } catch(e){}
+  // Re-run initChat NOW that isPro is known — fixes pro gate showing for logged-in pro users
+  App.initChat();
+  _supaUpdateUI();
 }
 function _supaUpdateUI() {
   const btn = document.querySelector('.hdr-upgrade');
+  const loginBtn = document.getElementById('profileLoginBtn');
   if(_supaUser) {
     if(btn) btn.textContent = profile.isPro ? '⭐ Pro' : 'Upgrade ⭐';
+    // Show user bar (email + sign out), hide login button
     const bar = document.getElementById('authUserBar');
     if(bar) { bar.style.display='flex'; bar.querySelector('.auth-email').textContent=_supaUser.email; }
+    if(loginBtn) loginBtn.style.display='none';
   } else {
     if(btn) btn.textContent = 'Login ⭐';
+    // Hide user bar, show login button
+    const bar = document.getElementById('authUserBar');
+    if(bar) bar.style.display='none';
+    if(loginBtn) loginBtn.style.display='block';
   }
 }
 function supaShowLogin() {
@@ -1416,6 +1516,63 @@ function supaBackToEmail() {
   document.getElementById('authSignInBtn').disabled=false;
   document.getElementById('authSignInBtn').textContent='Send Code';
 }
+
+// ── PWA INSTALL BANNER ──
+var _pwaPrompt = null;
+function _pwaIsInstalled() {
+  return window.matchMedia('(display-mode: standalone)').matches
+    || window.navigator.standalone === true;
+}
+function _pwaInitHomeBanner() {
+  var banner = document.getElementById('pwaHomeBanner');
+  if (!banner) return;
+  if (_pwaIsInstalled()) banner.style.display = 'none';
+}
+window.addEventListener('beforeinstallprompt', function(e) {
+  e.preventDefault();
+  _pwaPrompt = e;
+});
+function _pwaShowBanner() {
+  if (_pwaIsInstalled()) return;
+  if (localStorage.getItem('kawan_pwa_dismissed')) return;
+  if (!_pwaPrompt) return;
+  var banner = document.getElementById('pwaInstallBanner');
+  if (banner) {
+    banner.style.display = 'flex';
+    setTimeout(function() { _pwaDismissBanner(); }, 15000);
+  }
+}
+async function _pwaTriggerInstall() {
+  if (!_pwaPrompt) {
+    alert('To install:\n\nAndroid Chrome: tap the ⋮ menu → "Add to Home screen"\n\niOS Safari: tap Share → "Add to Home Screen"');
+    return;
+  }
+  var homeBanner = document.getElementById('pwaHomeBanner');
+  if (homeBanner) homeBanner.style.display = 'none';
+  _pwaDismissBanner();
+  _pwaPrompt.prompt();
+  const { outcome } = await _pwaPrompt.userChoice;
+  _pwaPrompt = null;
+  if (outcome === 'accepted') {
+    localStorage.setItem('kawan_pwa_dismissed', '1');
+  } else {
+    if (homeBanner) homeBanner.style.display = 'flex';
+  }
+}
+function _pwaDismissBanner() {
+  var banner = document.getElementById('pwaInstallBanner');
+  if (banner) banner.style.display = 'none';
+}
+function _pwaNeverAsk() {
+  localStorage.setItem('kawan_pwa_dismissed', '1');
+  _pwaDismissBanner();
+}
+window.addEventListener('appinstalled', function() {
+  _pwaPrompt = null;
+  _pwaDismissBanner();
+  localStorage.setItem('kawan_pwa_dismissed', '1');
+});
+
 async function supaSignOut() {
   await supa.auth.signOut();
   profile.isPro=false;
