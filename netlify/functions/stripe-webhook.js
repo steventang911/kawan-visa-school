@@ -29,7 +29,7 @@ function verifySignature(payload, signature, secret) {
 function supabaseUpdate(userId, isPro) {
   return new Promise((resolve, reject) => {
     const supabaseUrl = new URL(process.env.SUPABASE_URL);
-    const body = JSON.stringify({ is_pro: isPro });
+    const body = JSON.stringify({ is_pro_school: isPro });
 
     const req = https.request(
       {
