@@ -428,17 +428,6 @@ select.field-input option{background:var(--bg2)}
         </div>
         <button class="btn-theme" onclick="App.toggleTheme()" id="themeBtnHome" style="width:30px;height:30px;border-radius:50%;border:1px solid var(--border);background:var(--bg2);color:var(--text);font-size:14px;display:flex;align-items:center;justify-content:center;">☀️</button>
       </div>
-      <!-- PWA Install Banner — always visible until app is installed -->
-      <div id="pwaHomeBanner">
-        <div class="pwa-hb-icon">📲</div>
-        <div class="pwa-hb-text">
-          <div class="pwa-hb-title">Install Kawan Visa</div>
-          <div class="pwa-hb-sub">Add to home screen for instant access &amp; offline use!</div>
-        </div>
-        <button class="btn-pwa-hb" onclick="_pwaTriggerInstall()">Install ⚡</button>
-      </div>
-
-
       <!-- Pass Countdown Card -->
       <div class="visa-card" id="visaCountdownCard">
         <div class="particles-container" id="particles"></div>
@@ -1833,16 +1822,11 @@ function applyLang() {
 </div>
 
 <script>
-// ── PWA SERVICE WORKER REGISTRATION ──
 if ('serviceWorker' in navigator) {
   window.addEventListener('load', function() {
     navigator.serviceWorker.register('/sw.js', { scope: '/' })
-      .then(function(reg) {
-        // Registered OK — beforeinstallprompt will now fire on Chrome
-      })
-      .catch(function(err) {
-        console.warn('SW registration failed:', err);
-      });
+      .then(function(reg) {})
+      .catch(function(err) { console.warn('SW registration failed:', err); });
   });
 }
 </script>
