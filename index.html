@@ -1350,45 +1350,63 @@ function supaHideLogin() {
 async function supaSignIn() {
   const email = document.getElementById('authEmail').value.trim();
   if(!email||!email.includes('@')) { alert('Enter a valid email address.'); return; }
-  var lastSent = parseInt(localStorage.getItem('kawan_otp_ts')||'0');
-  var now = Date.now();
-  if(now-lastSent < 60000) {
-    alert('Please wait '+Math.ceil((60000-(now-lastSent))/1000)+' more seconds.');
-    return;
-  }
   const btn = document.getElementById('authSignInBtn');
   btn.disabled=true; btn.textContent='Sending…';
-  const { error } = await supa.auth.signInWithOtp({ email, options:{ shouldCreateUser:true } });
-  if(error) { alert('Error: '+error.message); btn.disabled=false; btn.textContent='Send Code'; }
-  else {
-    localStorage.setItem('kawan_otp_email', email);
-    localStorage.setItem('kawan_otp_ts', now.toString());
-    document.getElementById('authStep1').style.display='none';
-    document.getElementById('authStep2').style.display='block';
-    document.getElementById('authOtpInput').focus();
+  try {
+    const { error } = await supa.auth.signInWithOtp({ email, options:{ shouldCreateUser:true } });
+    if(error) {
+      alert('Error: '+error.message);
+      btn.disabled=false; btn.textContent='Send Code';
+    } else {
+      localStorage.setItem('kawan_otp_email', email);
+      document.getElementById('authStep1').style.display='none';
+      document.getElementById('authStep2').style.display='block';
+      document.getElementById('authOtpInput').focus();
+    }
+  } catch(e) {
+    alert('Network error. Check your connection and try again.');
+    btn.disabled=false; btn.textContent='Send Code';
   }
 }
 
 async function supaVerifyOtp() {
-  var code = document.getElementById('authOtpInput').value.trim();
-  var email = localStorage.getItem('kawan_otp_email')||'';
-  var errEl = document.getElementById('authOtpError');
-  if(!code||code.length!==6||isNaN(code)) {
+  const raw = document.getElementById('authOtpInput').value;
+  const code = String(raw).trim().replace(/\D/g,'');
+  const email = localStorage.getItem('kawan_otp_email')||'';
+  const errEl = document.getElementById('authOtpError');
+  errEl.style.display='none';
+  if(!code || code.length !== 6) {
     errEl.textContent='Enter the 6-digit code from your email.';
     errEl.style.display='block'; return;
   }
-  var btn = document.getElementById('authVerifyBtn');
+  if(!email) {
+    errEl.textContent='Session expired. Please start again.';
+    errEl.style.display='block';
+    supaBackToEmail(); return;
+  }
+  const btn = document.getElementById('authVerifyBtn');
   btn.disabled=true; btn.textContent='Verifying…';
-  errEl.style.display='none';
-  const { data, error } = await supa.auth.verifyOtp({ email, token:code, type:'email' });
-  if(error) {
-    errEl.textContent='Invalid or expired code. Try again.';
+  const timeout = setTimeout(() => {
+    btn.disabled=false; btn.textContent='Verify Code';
+    errEl.textContent='Request timed out. Please try again.';
+    errEl.style.display='block';
+  }, 15000);
+  try {
+    const { data, error } = await supa.auth.verifyOtp({ email, token: code, type: 'email' });
+    clearTimeout(timeout);
+    if(error) {
+      errEl.textContent='Invalid or expired code. Request a new one.';
+      errEl.style.display='block';
+      btn.disabled=false; btn.textContent='Verify Code';
+    } else {
+      localStorage.removeItem('kawan_otp_email');
+      supaHideLogin();
+    }
+  } catch(e) {
+    clearTimeout(timeout);
+    errEl.textContent='Network error. Check connection and try again.';
     errEl.style.display='block';
     btn.disabled=false; btn.textContent='Verify Code';
-  } else {
-    localStorage.removeItem('kawan_otp_email');
-    localStorage.removeItem('kawan_otp_ts');
-    supaHideLogin();
   }
 }
 
@@ -1611,7 +1629,7 @@ function applyLang() {
     <!-- Step 2: OTP code -->
     <div id="authStep2" style="display:none">
       <div class="auth-modal-sub">Check your email for a 6-digit code. Valid for 10 minutes.</div>
-      <input class="auth-input" id="authOtpInput" type="number" placeholder="123456"
+      <input class="auth-input" id="authOtpInput" type="tel" inputmode="numeric" pattern="[0-9]*" placeholder="123456"
         style="font-size:22px;letter-spacing:6px;text-align:center"
         onkeydown="if(event.key==='Enter')supaVerifyOtp()">
       <div id="authOtpError" style="display:none;color:var(--red);font-size:12px;margin-bottom:8px"></div>
