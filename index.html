@@ -1313,8 +1313,8 @@ async function _supaInit() {
   _supaUpdateUI();
 }
 async function _supaLoadPro() {
-  const { data } = await supa.from('profiles').select('is_pro').eq('id', _supaUser.id).single();
-  profile.isPro = data ? (data.is_pro||false) : false;
+  const { data } = await supa.from('profiles').select('is_pro_school').eq('id', _supaUser.id).single();
+  profile.isPro = data ? (data.is_pro_school||false) : false;
   try { localStorage.setItem('kawan_school_profile', JSON.stringify(profile));
     applyLang(); } catch(e){}
 }
