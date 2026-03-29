@@ -258,6 +258,82 @@ select.field-input option{background:var(--bg2)}
 .visa-card{position:relative;overflow:hidden}
 .particles-container{position:absolute;inset:0;pointer-events:none;overflow:hidden}
 .particle{position:absolute;width:4px;height:4px;border-radius:50%;pointer-events:none}
+/* ══ CROSS-PROMO ══ */
+@keyframes xp-shimmer {
+  0%   { background-position: -200% center; }
+  100% { background-position: 200% center; }
+}
+@keyframes xp-pulse {
+  0%,100% { box-shadow: 0 0 0 0 rgba(99,102,241,.18); }
+  50%      { box-shadow: 0 0 0 5px rgba(99,102,241,.0); }
+}
+@keyframes xp-badge-glow {
+  0%,100% { opacity:1; }
+  50%      { opacity:.6; }
+}
+.cross-promo {
+  position:relative;
+  overflow:hidden;
+  background: linear-gradient(135deg, rgba(99,102,241,.15) 0%, rgba(14,165,190,.12) 50%, rgba(99,102,241,.15) 100%);
+  background-size: 200% auto;
+  border: 1px solid rgba(129,140,248,.35);
+  border-radius: var(--rs);
+  padding: 11px 13px;
+  margin-bottom: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  cursor: pointer;
+  text-decoration: none;
+  animation: xp-shimmer 4s linear infinite, xp-pulse 3s ease-in-out infinite;
+  transition: transform .15s ease, opacity .15s ease;
+}
+.cross-promo:active { transform: scale(.97); opacity:.85; }
+/* subtle shine sweep */
+.cross-promo::before {
+  content:'';
+  position:absolute;
+  top:0; left:-60%;
+  width:40%; height:100%;
+  background: linear-gradient(90deg, transparent, rgba(255,255,255,.07), transparent);
+  animation: xp-shimmer 3.5s linear infinite;
+}
+.cross-promo-badge {
+  display: inline-block;
+  font-size: 8px;
+  font-weight: 800;
+  color: #c7d2fe;
+  text-transform: uppercase;
+  letter-spacing: .6px;
+  margin-bottom: 3px;
+  animation: xp-badge-glow 2.5s ease-in-out infinite;
+}
+.cross-promo-name {
+  font-size: 13px;
+  font-weight: 800;
+  color: #e0e7ff;
+  letter-spacing: -.2px;
+}
+.cross-promo-sub {
+  font-size: 10px;
+  color: #a5b4fc;
+  margin-top: 2px;
+}
+.cross-promo-logo {
+  width: 36px; height: 36px;
+  border-radius: 8px;
+  background: linear-gradient(135deg, #6366f1, #818cf8);
+  display: flex; align-items: center; justify-content: center;
+  font-size: 20px;
+  flex-shrink: 0;
+  box-shadow: 0 2px 8px rgba(99,102,241,.35);
+}
+.cross-promo-arrow {
+  font-size: 14px;
+  color: #a5b4fc;
+  margin-left: 6px;
+  flex-shrink: 0;
+}
 </style>
 </head>
 <body>
@@ -336,7 +412,18 @@ select.field-input option{background:var(--bg2)}
         <div class="sponsor-logo">🏫</div>
       </div>
 
-      <div class="ver-footer">Kawan v1.0 · 🇲🇾 For International School Families</div>
+      <!-- Cross-promo: University version -->
+      <a class="cross-promo" href="https://kawan-visa.netlify.app" target="_blank" rel="noopener">
+        <div class="cross-promo-logo">🎓</div>
+        <div style="flex:1;margin:0 10px;">
+          <div class="cross-promo-badge">✦ Also by Kawan Visa</div>
+          <div class="cross-promo-name">University Edition</div>
+          <div class="cross-promo-sub">EMGS · Appeal sessions · iKad · Renewal</div>
+        </div>
+        <div class="cross-promo-arrow">→</div>
+      </a>
+
+      <div class="ver-footer">Kawan v1.0 · 🇲🇾 Made in Malaysia</div>
     </div>
 
     <!-- ══ PAGE: Q&A ══ -->
