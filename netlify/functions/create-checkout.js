@@ -1,53 +1,27 @@
-// Netlify Function: stripe-webhook
-// Listens for Stripe payment events → flips is_pro = true in Supabase
-// Env vars needed: STRIPE_WEBHOOK_SECRET, SUPABASE_URL, SUPABASE_SERVICE_KEY
+// Netlify Function: create-checkout
+// Creates a Stripe Checkout session for Kawan Visa School Pro (RM14.90/month)
+// Env vars needed: STRIPE_SECRET_KEY, STRIPE_PRICE_ID_SCHOOL
 
 const https = require('https');
-const crypto = require('crypto');
 
-// Verify Stripe webhook signature
-function verifySignature(payload, signature, secret) {
-  const parts = signature.split(',').reduce((acc, part) => {
-    const [k, v] = part.split('=');
-    acc[k] = v;
-    return acc;
-  }, {});
-
-  const signedPayload = `${parts.t}.${payload}`;
-  const expected = crypto
-    .createHmac('sha256', secret)
-    .update(signedPayload)
-    .digest('hex');
-
-  return crypto.timingSafeEqual(
-    Buffer.from(`v1=${expected}`),
-    Buffer.from(parts.v1 || '')
-  );
-}
-
-// Update is_pro in Supabase
-function supabaseUpdate(userId, isPro) {
+function stripeRequest(path, payload) {
   return new Promise((resolve, reject) => {
-    const supabaseUrl = new URL(process.env.SUPABASE_URL);
-    const body = JSON.stringify({ is_pro_school: isPro });
-
+    const body = new URLSearchParams(payload).toString();
     const req = https.request(
       {
-        hostname: supabaseUrl.hostname,
-        path: `/rest/v1/profiles?id=eq.${userId}`,
-        method: 'PATCH',
+        hostname: 'api.stripe.com',
+        path,
+        method: 'POST',
         headers: {
-          'Content-Type': 'application/json',
-          'apikey': process.env.SUPABASE_SERVICE_KEY,
-          'Authorization': `Bearer ${process.env.SUPABASE_SERVICE_KEY}`,
+          'Authorization': `Bearer ${process.env.STRIPE_SECRET_KEY}`,
+          'Content-Type': 'application/x-www-form-urlencoded',
           'Content-Length': Buffer.byteLength(body),
-          'Prefer': 'return=minimal',
         },
       },
       (res) => {
         let data = '';
         res.on('data', chunk => data += chunk);
-        res.on('end', () => resolve({ status: res.statusCode, body: data }));
+        res.on('end', () => resolve({ status: res.statusCode, body: JSON.parse(data) }));
       }
     );
     req.on('error', reject);
@@ -57,55 +31,43 @@ function supabaseUpdate(userId, isPro) {
 }
 
 exports.handler = async (event) => {
-  const sig = event.headers['stripe-signature'];
-  const payload = event.body;
+  const headers = {
+    'Access-Control-Allow-Origin': '*',
+    'Access-Control-Allow-Headers': 'Content-Type',
+    'Content-Type': 'application/json',
+  };
 
-  // Verify webhook authenticity
-  let valid = false;
-  try {
-    valid = verifySignature(payload, sig, process.env.STRIPE_WEBHOOK_SECRET);
-  } catch (e) {
-    console.error('Signature verification error:', e);
-  }
-
-  if (!valid) {
-    return { statusCode: 400, body: 'Invalid signature' };
-  }
-
-  const stripeEvent = JSON.parse(payload);
-  console.log('Stripe event:', stripeEvent.type);
+  if (event.httpMethod === 'OPTIONS') return { statusCode: 200, headers, body: '' };
+  if (event.httpMethod !== 'POST') return { statusCode: 405, headers, body: 'Method Not Allowed' };
 
   try {
-    // Payment succeeded → activate Pro
-    if (stripeEvent.type === 'checkout.session.completed') {
-      const session = stripeEvent.data.object;
-      const userId = session.metadata?.userId || session.client_reference_id;
-      if (userId) {
-        const result = await supabaseUpdate(userId, true);
-        console.log(`✅ is_pro=true for user ${userId}, Supabase status: ${result.status}`);
-      } else {
-        console.error('❌ No userId in session metadata');
-      }
+    const { email, userId } = JSON.parse(event.body);
+    if (!email || !userId) return { statusCode: 400, headers, body: JSON.stringify({ error: 'Missing email or userId' }) };
+
+    const BASE_URL = 'https://kawan-visa-school.netlify.app';
+
+    // Create Stripe Checkout session
+    const session = await stripeRequest('/v1/checkout/sessions', {
+      'mode': 'subscription',
+      'line_items[0][price]': process.env.STRIPE_PRICE_ID_SCHOOL, // RM14.90/month price ID
+      'line_items[0][quantity]': '1',
+      'customer_email': email,
+      'client_reference_id': userId,            // used in webhook to identify user
+      'success_url': `${BASE_URL}/?payment=success`,
+      'cancel_url': `${BASE_URL}/?payment=cancelled`,
+      'metadata[userId]': userId,
+      'metadata[app]': 'kawan-visa-school',
+    });
+
+    if (session.status !== 200) {
+      console.error('Stripe error:', session.body);
+      return { statusCode: 500, headers, body: JSON.stringify({ error: 'Stripe session creation failed' }) };
     }
 
-    // Subscription cancelled / payment failed → deactivate Pro
-    if (
-      stripeEvent.type === 'customer.subscription.deleted' ||
-      stripeEvent.type === 'invoice.payment_failed'
-    ) {
-      const obj = stripeEvent.data.object;
-      // Need userId from metadata — stored during checkout
-      const userId = obj.metadata?.userId;
-      if (userId) {
-        await supabaseUpdate(userId, false);
-        console.log(`⚠️ is_pro=false for user ${userId}`);
-      }
-    }
-
-    return { statusCode: 200, body: JSON.stringify({ received: true }) };
+    return { statusCode: 200, headers, body: JSON.stringify({ url: session.body.url }) };
 
   } catch (err) {
-    console.error('Webhook handler error:', err);
-    return { statusCode: 500, body: 'Webhook handler failed' };
+    console.error('create-checkout error:', err);
+    return { statusCode: 500, headers, body: JSON.stringify({ error: 'Internal server error' }) };
   }
 };
