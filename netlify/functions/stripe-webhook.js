@@ -1,47 +1,40 @@
-// Netlify Function: stripe-webhook
-// Listens for Stripe payment events → flips is_pro = true in Supabase
-// Env vars needed: STRIPE_WEBHOOK_SECRET, SUPABASE_URL, SUPABASE_SERVICE_KEY
+// Netlify Function: stripe-webhook (Kawan Visa SCHOOL)
+// Listens for Stripe events → flips is_pro_school in Supabase
+// Env vars: STRIPE_WEBHOOK_SECRET, SUPABASE_URL, SUPABASE_SERVICE_KEY
 
-const https = require('https');
+const https  = require('https');
 const crypto = require('crypto');
 
-// Verify Stripe webhook signature
-function verifySignature(payload, signature, secret) {
-  const parts = signature.split(',').reduce((acc, part) => {
+// ── Signature verification (manual — no Stripe SDK) ──────────────────────────
+function verifySignature(rawBody, sigHeader, secret) {
+  const parts = {};
+  sigHeader.split(',').forEach(part => {
     const [k, v] = part.split('=');
-    acc[k] = v;
-    return acc;
-  }, {});
-
-  const signedPayload = `${parts.t}.${payload}`;
-  const expected = crypto
-    .createHmac('sha256', secret)
-    .update(signedPayload)
-    .digest('hex');
-
-  return crypto.timingSafeEqual(
-    Buffer.from(`v1=${expected}`),
-    Buffer.from(parts.v1 || '')
-  );
+    parts[k] = v;
+  });
+  const timestamp  = parts['t'];
+  const v1sigs     = sigHeader.split(',').filter(p => p.startsWith('v1=')).map(p => p.slice(3));
+  const signed     = `${timestamp}.${rawBody}`;
+  const expected   = crypto.createHmac('sha256', secret).update(signed, 'utf8').digest('hex');
+  return v1sigs.includes(expected);
 }
 
-// Update is_pro in Supabase
+// ── Supabase PATCH: flip is_pro_school ───────────────────────────────────────
 function supabaseUpdate(userId, isPro) {
   return new Promise((resolve, reject) => {
-    const supabaseUrl = new URL(process.env.SUPABASE_URL);
     const body = JSON.stringify({ is_pro_school: isPro });
-
-    const req = https.request(
+    const url  = new URL(`${process.env.SUPABASE_URL}/rest/v1/profiles?id=eq.${userId}`);
+    const req  = https.request(
       {
-        hostname: supabaseUrl.hostname,
-        path: `/rest/v1/profiles?id=eq.${userId}`,
-        method: 'PATCH',
+        hostname: url.hostname,
+        path:     url.pathname + url.search,
+        method:   'PATCH',
         headers: {
-          'Content-Type': 'application/json',
-          'apikey': process.env.SUPABASE_SERVICE_KEY,
-          'Authorization': `Bearer ${process.env.SUPABASE_SERVICE_KEY}`,
+          'Content-Type':   'application/json',
           'Content-Length': Buffer.byteLength(body),
-          'Prefer': 'return=minimal',
+          'apikey':         process.env.SUPABASE_SERVICE_KEY,
+          'Authorization':  `Bearer ${process.env.SUPABASE_SERVICE_KEY}`,
+          'Prefer':         'return=minimal',
         },
       },
       (res) => {
@@ -56,49 +49,63 @@ function supabaseUpdate(userId, isPro) {
   });
 }
 
+// ── Handler ───────────────────────────────────────────────────────────────────
 exports.handler = async (event) => {
-  const sig = event.headers['stripe-signature'];
-  const payload = event.body;
+  // CRITICAL: Netlify may base64-encode the raw body — decode it properly
+  const rawBody = event.isBase64Encoded
+    ? Buffer.from(event.body, 'base64').toString('utf8')
+    : event.body;
 
-  // Verify webhook authenticity
+  const sig    = event.headers['stripe-signature'];
+  const secret = process.env.STRIPE_WEBHOOK_SECRET;
+
+  if (!sig || !secret) {
+    console.error('Missing signature or secret');
+    return { statusCode: 400, body: 'Missing signature or secret' };
+  }
+
+  // Verify Stripe signature against RAW body
   let valid = false;
   try {
-    valid = verifySignature(payload, sig, process.env.STRIPE_WEBHOOK_SECRET);
+    valid = verifySignature(rawBody, sig, secret);
   } catch (e) {
-    console.error('Signature verification error:', e);
+    console.error('Signature error:', e.message);
   }
 
   if (!valid) {
-    return { statusCode: 400, body: 'Invalid signature' };
+    console.error('Invalid signature — check STRIPE_WEBHOOK_SECRET env var');
+    return { statusCode: 400, body: JSON.stringify('Invalid signature') };
   }
 
-  const stripeEvent = JSON.parse(payload);
-  console.log('Stripe event:', stripeEvent.type);
+  // Parse event
+  let stripeEvent;
+  try {
+    stripeEvent = JSON.parse(rawBody);
+  } catch (e) {
+    return { statusCode: 400, body: 'Invalid JSON' };
+  }
+
+  console.log('Stripe event received:', stripeEvent.type);
 
   try {
-    // Payment succeeded → activate Pro
     if (stripeEvent.type === 'checkout.session.completed') {
       const session = stripeEvent.data.object;
-      const userId = session.metadata?.userId || session.client_reference_id;
+      const userId  = session.metadata?.userId || session.client_reference_id;
       if (userId) {
         const result = await supabaseUpdate(userId, true);
-        console.log(`✅ is_pro=true for user ${userId}, Supabase status: ${result.status}`);
+        console.log(`✅ is_pro_school=true for userId=${userId}, Supabase: ${result.status}`);
       } else {
-        console.error('❌ No userId in session metadata');
+        console.error('❌ No userId in session metadata or client_reference_id');
       }
     }
 
-    // Subscription cancelled / payment failed → deactivate Pro
-    if (
-      stripeEvent.type === 'customer.subscription.deleted' ||
-      stripeEvent.type === 'invoice.payment_failed'
-    ) {
-      const obj = stripeEvent.data.object;
-      // Need userId from metadata — stored during checkout
+    if (stripeEvent.type === 'customer.subscription.deleted' ||
+        stripeEvent.type === 'invoice.payment_failed') {
+      const obj    = stripeEvent.data.object;
       const userId = obj.metadata?.userId;
       if (userId) {
         await supabaseUpdate(userId, false);
-        console.log(`⚠️ is_pro=false for user ${userId}`);
+        console.log(`⚠️ is_pro_school=false for userId=${userId}`);
       }
     }
 
